@@ -18,7 +18,7 @@ func main() {
 			Name:  "output, o",
 			Usage: "保存名を指定してください",
 		},
-		cli.BoolTFlag{
+		cli.BoolFlag{
 			Name:  "remote-name, O",
 			Usage: "リモートファイルのファイル部分を名前に利用します",
 		},
@@ -30,12 +30,15 @@ func main() {
 
 	app.Action = func(c *cli.Context) error {
 		client := client.New(c)
-		response, err := client.Get()
-		if err != nil {
-			return err
+		if c.Bool("O") != true && c.String("output") == "" {
+			response, err := client.Get()
+			if err != nil {
+				return err
+			}
+			fmt.Println(response)
+		} else {
+			client.GetImage()
 		}
-		response = ""
-		fmt.Println(response)
 		return nil
 	}
 

@@ -1,8 +1,12 @@
 package client
 
 import (
+	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"net/url"
+	"os"
 	"regexp"
 	"strings"
 
@@ -13,6 +17,7 @@ import (
 //clientはhttpリクエストを送信するためのモジュールです。
 type Client interface {
 	Get() (string, error)
+	GetImage()
 }
 
 type client struct {
@@ -20,6 +25,22 @@ type client struct {
 	Method   string
 	FileName string
 	Data     string
+}
+
+func (c *client) GetImage() {
+	response, err := http.Get(c.URL)
+	if err != nil {
+		panic(err)
+	}
+	defer response.Body.Close()
+
+	file, err := os.Create(c.FileName)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	io.Copy(file, response.Body)
 }
 
 func (c *client) Get() (string, error) {
@@ -49,14 +70,37 @@ func getUrl(c *cli.Context) string {
 
 func New(c *cli.Context) Client {
 	var method string
+	var urlstring string
+	var filename string
+
+	urlstring = getUrl(c)
+
+	if c.Bool("O") {
+		u, err := url.Parse(urlstring)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if u.Path == "/" {
+			filename = "index.html"
+		} else {
+			filename = u.Path
+		}
+	} else if c.String("output") != "" {
+		filename = c.String("output")
+	} else {
+		filename = ""
+	}
+
 	if c.String("data") != "" {
 		method = "POST"
 	} else {
 		method = "GET"
 	}
+
 	return &client{
-		URL:    getUrl(c),
-		Method: method,
-		Data:   strings.Join(c.StringSlice("data"), "&"),
+		URL:      urlstring,
+		Method:   method,
+		FileName: "./" + filename,
+		Data:     strings.Join(c.StringSlice("data"), "&"),
 	}
 }
