@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -33,8 +34,8 @@ func (c *client) Request() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
 
+	defer resp.Body.Close()
 	if httpinfo.Output.Flag {
 		if _, err := os.Stat(path.Dir(httpinfo.Output.Filename)); os.IsNotExist(err) {
 			os.Mkdir(path.Dir(httpinfo.Output.Filename), 0777)
@@ -47,6 +48,16 @@ func (c *client) Request() (string, error) {
 
 		io.Copy(file, resp.Body)
 		return "", nil
+	}
+
+	if httpinfo.Header.ReadFlag {
+		var h string
+		h += resp.Proto + " " + resp.Status + "\n"
+		for i, headslice := range resp.Header {
+			h += i + " " + strings.Join(headslice, " ") + "\n"
+		}
+		h += "Content-Length: " + fmt.Sprint(resp.ContentLength) + "\n"
+		return string(h), nil
 	}
 	byteArray, _ := ioutil.ReadAll(resp.Body)
 	return string(byteArray), nil

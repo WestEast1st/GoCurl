@@ -25,4 +25,5 @@ type Output struct {
 }
 
 type Header struct {
+	ReadFlag bool
 }

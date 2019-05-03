@@ -30,11 +30,16 @@ func main() {
 			Name:  "data, d",
 			Usage: "POST送信するデータを入力してください",
 		},
+		cli.BoolFlag{
+			Name:  "head, I",
+			Usage: "HTTP/FTP/FILEなどのヘッダーファイル情報を表示します",
+		},
 	}
 
 	app.Action = func(c *cli.Context) {
 		var urls infomation.HttpInfomation
 		var outputconf infomation.Output
+		var headerconf infomation.Header
 		var method string
 		var filename string
 
@@ -49,13 +54,16 @@ func main() {
 				outputconf.Filename = path[len(path)-1]
 			}
 		}
+		// header情報を取得
+		if c.Bool("head") {
+			headerconf.ReadFlag = c.Bool("head")
+		}
 		//利用可能なスキーム
-		r := regexp.MustCompile(`^(http|https|ftp|ftps|dns)$`)
+		r := regexp.MustCompile(`^(http|https|ftp|ftps|dns|file)$`)
 
 		for _, arg := range c.Args() {
 			u, _ := url.Parse(arg)
 			if len(r.FindStringSubmatch(u.Scheme)) > 0 {
-
 				// -O remote-name用の箇所
 				if outputconf.Flag && outputconf.Filename == "" {
 					path := strings.Split(u.Path, "/")
@@ -88,6 +96,7 @@ func main() {
 					Data:     values,
 					Fragment: u.Fragment,
 					Output:   outputconf,
+					Header:   headerconf,
 				}
 			}
 		}
