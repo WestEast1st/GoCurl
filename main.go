@@ -31,7 +31,7 @@ func main() {
 	app.Action = func(c *cli.Context) error {
 		client := client.New(c)
 		if c.Bool("O") != true && c.String("output") == "" {
-			response, err := client.Get()
+			response, err := client.Request()
 			if err != nil {
 				return err
 			}

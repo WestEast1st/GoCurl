@@ -17,7 +17,7 @@ import (
 //Client ...
 //clientはhttpリクエストを送信するためのモジュールです。
 type Client interface {
-	Get() (string, error)
+	Request() (string, error)
 	GetImage()
 }
 
@@ -25,7 +25,7 @@ type client struct {
 	URL      string
 	Method   string
 	FileName string
-	Data     string
+	Data     url.Values
 }
 
 func (c *client) GetImage() {
@@ -46,8 +46,8 @@ func (c *client) GetImage() {
 	io.Copy(file, response.Body)
 }
 
-func (c *client) Get() (string, error) {
-	req, _ := http.NewRequest("GET", c.URL, nil)
+func (c *client) Request() (string, error) {
+	req, _ := http.NewRequest(c.Method, c.URL, strings.NewReader(c.Data.Encode()))
 
 	httpclient := new(http.Client)
 	resp, err := httpclient.Do(req)
@@ -100,10 +100,16 @@ func New(c *cli.Context) Client {
 		method = "GET"
 	}
 
+	values := url.Values{}
+
+	for _, data := range c.StringSlice("data") {
+		slice := strings.Split(data, "=")
+		values.Set(slice[0], slice[1])
+	}
 	return &client{
 		URL:      urlstring,
 		Method:   method,
 		FileName: "." + filename,
-		Data:     strings.Join(c.StringSlice("data"), "&"),
+		Data:     values,
 	}
 }
