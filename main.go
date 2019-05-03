@@ -2,9 +2,13 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
+	"regexp"
+	"strings"
 
 	"./client"
+	"./infomation"
 	"github.com/urfave/cli"
 )
 
@@ -28,18 +32,72 @@ func main() {
 		},
 	}
 
-	app.Action = func(c *cli.Context) error {
-		client := client.New(c)
-		if c.Bool("O") != true && c.String("output") == "" {
-			response, err := client.Request()
-			if err != nil {
-				return err
+	app.Action = func(c *cli.Context) {
+		var urls infomation.HttpInfomation
+		var outputconf infomation.Output
+		var method string
+		var filename string
+
+		method = "GET"
+
+		// output関連のオプション設定
+		if c.Bool("O") || c.String("output") != "" {
+			outputconf.Flag = true
+			if c.String("output") != "" {
+				path := strings.Split(c.String("output"), "/")
+				outputconf.Filepath = strings.Join(path[:len(path)-1], "/")
+				outputconf.Filename = path[len(path)-1]
 			}
-			fmt.Println(response)
-		} else {
-			client.GetImage()
 		}
-		return nil
+		//利用可能なスキーム
+		r := regexp.MustCompile(`^(http|https|ftp|ftps|dns)$`)
+
+		for _, arg := range c.Args() {
+			u, _ := url.Parse(arg)
+			if len(r.FindStringSubmatch(u.Scheme)) > 0 {
+
+				// -O remote-name用の箇所
+				if outputconf.Flag && outputconf.Filename == "" {
+					path := strings.Split(u.Path, "/")
+					outputconf.Filepath = "./"
+					if path[len(path)-1] == "" {
+						filename = "index.html"
+					} else {
+						filename = path[len(path)-1]
+					}
+					outputconf.Filename = filename
+				}
+				// -d --dataの送信データの構造変更
+				values := url.Values{}
+				if len(c.StringSlice("data")) > 0 {
+					method = "POST"
+					for _, data := range c.StringSlice("data") {
+						slice := strings.Split(data, "=")
+						values.Set(slice[0], slice[1])
+					}
+				}
+				// URL関連の構造体
+				urls = infomation.HttpInfomation{
+					URL:      u.String(),
+					URI:      u.RequestURI(),
+					Method:   method,
+					Port:     u.Port(),
+					Hostname: u.Hostname(),
+					Path:     u.Path,
+					Query:    u.Query(),
+					Data:     values,
+					Fragment: u.Fragment,
+					Output:   outputconf,
+				}
+			}
+		}
+		if len(urls.URL) > 0 {
+			client := client.New(urls)
+			res, _ := client.Request()
+			if res != "" {
+				fmt.Println(res)
+			}
+		}
 	}
 
 	app.HideHelp = true
