@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 
@@ -33,7 +34,9 @@ func (c *client) GetImage() {
 		panic(err)
 	}
 	defer response.Body.Close()
-
+	if _, err := os.Stat(path.Dir(c.FileName)); os.IsNotExist(err) {
+		os.Mkdir(path.Dir(c.FileName), 0777)
+	}
 	file, err := os.Create(c.FileName)
 	if err != nil {
 		panic(err)
@@ -100,7 +103,7 @@ func New(c *cli.Context) Client {
 	return &client{
 		URL:      urlstring,
 		Method:   method,
-		FileName: "./" + filename,
+		FileName: "." + filename,
 		Data:     strings.Join(c.StringSlice("data"), "&"),
 	}
 }
