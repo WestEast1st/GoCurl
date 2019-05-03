@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"./client"
@@ -14,8 +15,13 @@ func main() {
 	app.Version = "0.0.1"
 
 	app.Action = func(c *cli.Context) error {
-		client := client.New(c.Args().Get(0))
-		client.Get()
+		url := c.Args().Get(0)
+		client := client.New(url)
+		response, err := client.Get()
+		if err != nil {
+			return err
+		}
+		fmt.Println(response)
 		return nil
 	}
 

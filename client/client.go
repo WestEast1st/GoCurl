@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 )
@@ -9,25 +8,25 @@ import (
 //Client ...
 //clientはhttpリクエストを送信するためのモジュールです。
 type Client interface {
-	Get()
+	Get() (string, error)
 }
 
 type client struct {
 	URL string
 }
 
-func (c *client) Get() {
+func (c *client) Get() (string, error) {
 	req, _ := http.NewRequest("GET", c.URL, nil)
 
-	client := new(http.Client)
-	resp, err := client.Do(req)
+	httpclient := new(http.Client)
+	resp, err := httpclient.Do(req)
 	if err != nil {
-		return
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	byteArray, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(byteArray))
+	return string(byteArray), nil
 }
 
 func New(url string) Client {
