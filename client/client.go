@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sort"
+	"strconv"
 	"strings"
 
 	"../infomation"
@@ -23,13 +25,23 @@ type client struct {
 }
 
 func (c *client) Request() (string, error) {
+	var httpclient http.Client
 	httpinfo := c.Info
 	req, _ := http.NewRequest(httpinfo.Method, httpinfo.URL, strings.NewReader(httpinfo.Data.Encode()))
 	if httpinfo.Method == "POST" {
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	}
-
-	httpclient := http.Client{}
+	req.Header.Add("Content-Length", strconv.FormatInt(req.ContentLength, 10))
+	req.Header.Add("Accept-Encoding", "chunked")
+	if httpinfo.Header.ReadFlag {
+		httpclient = http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
+	} else {
+		httpclient = http.Client{}
+	}
 	resp, err := httpclient.Do(req)
 	if err != nil {
 		return "", err
@@ -50,16 +62,22 @@ func (c *client) Request() (string, error) {
 		return "", nil
 	}
 
+	byteArray, _ := ioutil.ReadAll(resp.Body)
 	if httpinfo.Header.ReadFlag {
 		var h string
-		h += resp.Proto + " " + resp.Status + "\n"
-		for i, headslice := range resp.Header {
-			h += i + " " + strings.Join(headslice, " ") + "\n"
+		keys := []string{}
+		for k, _ := range resp.Header {
+			keys = append(keys, k)
 		}
-		h += "Content-Length: " + fmt.Sprint(resp.ContentLength) + "\n"
+		sort.Slice(keys, func(i, j int) bool {
+			return strings.Compare(keys[i], keys[j]) < 0
+		})
+		h += fmt.Sprintln(resp.Proto, resp.Status)
+		for _, k := range keys {
+			h += fmt.Sprintln(k, strings.Join(resp.Header[k], " "))
+		}
 		return string(h), nil
 	}
-	byteArray, _ := ioutil.ReadAll(resp.Body)
 	return string(byteArray), nil
 }
 
