@@ -30,6 +30,10 @@ func main() {
 			Name:  "data, d",
 			Usage: "POST送信するデータを入力してください",
 		},
+		cli.StringSliceFlag{
+			Name:  "header, H",
+			Usage: "POST送信するデータを入力してください",
+		},
 		cli.BoolFlag{
 			Name:  "head, I",
 			Usage: "HTTP/FTP/FILEなどのヘッダーファイル情報を表示します",
@@ -57,6 +61,16 @@ func main() {
 		// header情報を取得
 		if c.Bool("head") {
 			headerconf.ReadFlag = c.Bool("head")
+		}
+		if len(c.StringSlice("header")) > 0 {
+			m := map[string][]string{
+				"Accept-Encoding": {"chunked"},
+			}
+			for _, v := range c.StringSlice("header") {
+				h := strings.Split(v, ":")
+				m[h[0]] = []string{h[1]}
+			}
+			headerconf.HeaderInfo = m
 		}
 		//利用可能なスキーム
 		r := regexp.MustCompile(`^(http|https|ftp|ftps|dns|file)$`)

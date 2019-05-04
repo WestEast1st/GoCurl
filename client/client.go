@@ -32,7 +32,9 @@ func (c *client) Request() (string, error) {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	}
 	req.Header.Add("Content-Length", strconv.FormatInt(req.ContentLength, 10))
-	req.Header.Add("Accept-Encoding", "chunked")
+	for k, v := range httpinfo.Header.HeaderInfo {
+		req.Header.Add(k, strings.Join(v, ","))
+	}
 	if httpinfo.Header.ReadFlag {
 		httpclient = http.Client{
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {

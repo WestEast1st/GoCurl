@@ -25,5 +25,6 @@ type Output struct {
 }
 
 type Header struct {
-	ReadFlag bool
+	ReadFlag   bool
+	HeaderInfo map[string][]string
 }
