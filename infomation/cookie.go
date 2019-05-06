@@ -1,6 +1,8 @@
 package infomation
 
 import (
+	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"strconv"
@@ -38,7 +40,27 @@ type cookies struct {
 // 非効率読み込み いずれどうにかする
 func (c *cookies) LoadCookieFile(filepath string) (Cookies, error) {
 	var d map[string]cookie
+	file, err := os.Open(filepath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
 
+	b, err := ioutil.ReadAll(file)
+
+	for _, cks := range strings.Split(string(b), "\n") {
+		ck := strings.Split(cks, "\t")
+		e, _ := strconv.ParseInt(ck[4], 10, 64)
+		d[ck[0]] = cookie{
+			ck[0],
+			strconv.CanBackquote(ck[1]),
+			ck[2],
+			strconv.CanBackquote(ck[3]),
+			e,
+			ck[5],
+			ck[6],
+		}
+	}
 	return &cookies{Data: d}, nil
 }
 
