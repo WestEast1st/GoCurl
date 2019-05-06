@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 
 	"./client"
 	"./infomation"
@@ -46,35 +47,47 @@ func main() {
 		var headerconf infomation.Header
 		var method string
 		var filename string
-
 		method = "GET"
-
+		wg := &sync.WaitGroup{}
 		// output関連のオプション設定
-		if c.Bool("O") || c.String("output") != "" {
-			outputconf.Flag = true
-			if c.String("output") != "" {
-				path := strings.Split(c.String("output"), "/")
-				outputconf.Filepath = strings.Join(path[:len(path)-1], "/")
-				outputconf.Filename = path[len(path)-1]
+		go func() {
+			if c.Bool("O") || c.String("output") != "" {
+				wg.Add(1)
+				defer wg.Done()
+				outputconf.Flag = true
+				if c.String("output") != "" {
+					path := strings.Split(c.String("output"), "/")
+					outputconf.Filepath = strings.Join(path[:len(path)-1], "/")
+					outputconf.Filename = path[len(path)-1]
+				}
 			}
-		}
+		}()
 		// header情報を取得
-		if c.Bool("head") {
-			headerconf.ReadFlag = c.Bool("head")
-		}
-		if len(c.StringSlice("header")) > 0 {
-			m := map[string][]string{
-				"Accept-Encoding": {"chunked"},
+		go func() {
+			if c.Bool("head") {
+				wg.Add(1)
+				defer wg.Done()
+				headerconf.ReadFlag = c.Bool("head")
 			}
-			for _, v := range c.StringSlice("header") {
-				h := strings.Split(v, ":")
-				m[h[0]] = []string{h[1]}
+		}()
+
+		go func() {
+			if len(c.StringSlice("header")) > 0 {
+				wg.Add(1)
+				defer wg.Done()
+				m := map[string][]string{
+					"Accept-Encoding": {"chunked"},
+				}
+				for _, v := range c.StringSlice("header") {
+					h := strings.Split(v, ":")
+					m[h[0]] = []string{h[1]}
+				}
+				headerconf.HeaderInfo = m
 			}
-			headerconf.HeaderInfo = m
-		}
+		}()
 		//利用可能なスキーム
 		r := regexp.MustCompile(`^(http|https|ftp|ftps|dns|file)$`)
-
+		wg.Wait()
 		for _, arg := range c.Args() {
 			u, _ := url.Parse(arg)
 			if len(r.FindStringSubmatch(u.Scheme)) > 0 {
