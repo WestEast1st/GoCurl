@@ -62,7 +62,7 @@ func main() {
 				}
 			}
 		}()
-		// header情報を取得
+		// レスポンスheader情報を取得
 		go func() {
 			if c.Bool("head") {
 				wg.Add(1)
@@ -70,7 +70,7 @@ func main() {
 				headerconf.ReadFlag = c.Bool("head")
 			}
 		}()
-
+		// リクエストheader情報の格納
 		go func() {
 			if len(c.StringSlice("header")) > 0 {
 				wg.Add(1)
@@ -127,6 +127,7 @@ func main() {
 				}
 			}
 		}
+		// 実行
 		if len(urls.URL) > 0 {
 			client := client.New(urls)
 			res, _ := client.Request()
