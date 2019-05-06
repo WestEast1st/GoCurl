@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"net/http/cookiejar"
 	"os"
 	"path"
 	"sort"
@@ -27,6 +29,11 @@ type client struct {
 func (c *client) Request() (string, error) {
 	var httpclient http.Client
 	httpinfo := c.Info
+	//
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 	req, _ := http.NewRequest(httpinfo.Method, httpinfo.URL, strings.NewReader(httpinfo.Data.Encode()))
 	if httpinfo.Method == "POST" {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
@@ -37,12 +44,13 @@ func (c *client) Request() (string, error) {
 	}
 	if httpinfo.Header.ReadFlag {
 		httpclient = http.Client{
+			Jar: jar,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse
 			},
 		}
 	} else {
-		httpclient = http.Client{}
+		httpclient = http.Client{Jar: jar}
 	}
 	resp, err := httpclient.Do(req)
 	if err != nil {
@@ -50,6 +58,16 @@ func (c *client) Request() (string, error) {
 	}
 
 	defer resp.Body.Close()
+	// cookieの保存
+	/*
+		defer func() {
+			set_cookie_url, err := url.Parse(httpinfo.URL)
+			if err != nil {
+				log.Fatal(err)
+			}
+			cookiejars := jar.Cookies(set_cookie_url)
+		}()
+	*/
 	if httpinfo.Output.Flag {
 		if _, err := os.Stat(path.Dir(httpinfo.Output.Filename)); os.IsNotExist(err) {
 			os.Mkdir(path.Dir(httpinfo.Output.Filename), 0777)
