@@ -1,0 +1,20 @@
+# Netscape HTTP Cookie File
+# http://www.netscape.com/newsref/std/cookie_spec.html
+# This is a generated file!  Do not edit.
+
+home.netscape.com	FALSE	/comprod/products/navigator/version_3.0	FALSE	949276800	dogbark	1%7Cambient%3D1%7Ccommercial%3D1%7Cfunky%3D1%7Cpop%3D1%7Csoundtrack%3D1%7Ctechno%3D1
+www2n.meshnet.or.jp	FALSE	/~anada/ver1/fb/	FALSE	908123503	fb01	1997/10/10%2016%3A23%3A44
+www2n.meshnet.or.jp	FALSE	/~anada/ver1/fb/	FALSE	906261345	fb02	1997/09/19%2003%3A07%3A51
+www2n.meshnet.or.jp	FALSE	/~anada/ver1/fb/	FALSE	906261362	fb03	1997/09/19%2003%3A08%3A07
+www2n.meshnet.or.jp	FALSE	/~anada/ver1/fb/	FALSE	906261396	fb04	1997/09/19%2003%3A08%3A21
+www2n.meshnet.or.jp	FALSE	/~anada/ver1/fb/	FALSE	906852924	fb05	1997/09/25%2023%3A27%3A42
+www2n.meshnet.or.jp	FALSE	/~anada/ver1/fb/	FALSE	906852967	fb06	1997/09/25%2023%3A28%3A26
+www.sikasenbey.or.jp	FALSE	/~nkgwk/cgi-bin	FALSE	878781283	nkgwk-minibbs	name!古籏一浩,email!openspc@po.cnet.ne.jp,url!http://www.shiojiri.ne.jp/~openspc/
+www.imasy.or.jp	FALSE	/~kenichi/bbs2/	FALSE	878728390	WSLastAccess	876136390
+.netscape.com	TRUE	/bin	FALSE	915148800	RCRC	832416841417460012500
+.netscape.com	TRUE	/	FALSE	946684799	NETSCAPE_ID	c65ffb1e,c7654534
+cgi.netscape.com	FALSE	/	FALSE	946684799	NETSCAPE_VERIFY	c65ff94b,c624e3b5
+www.enemy.org	FALSE	/	FALSE	946511999	RoxenUserID	0xc9d
+.adobe.com	TRUE	/	FALSE	946684799	INTERSE	202.227.3.138254857198244546
+.doubleclick.net	TRUE	/	FALSE	1920499140	id	79401f9
+www.geocities.com	FALSE	/	FALSE	934947883	GeoId	2027979871875883683
