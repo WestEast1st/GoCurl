@@ -1,7 +1,9 @@
 package cookie
 
 import (
+	"fmt"
 	"math/rand"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -40,6 +42,8 @@ var c = New()
 func TestNew(t *testing.T) {
 	reflect.TypeOf(c)
 }
+
+//cookie読み込みテスト
 func TestReadCookie(t *testing.T) {
 	cookies, _ := c.LoadFile(testfilepath)
 	a, _ := cookies.Read("home.netscape.com")
@@ -47,6 +51,8 @@ func TestReadCookie(t *testing.T) {
 		t.Error("取得した値が異なります\n")
 	}
 }
+
+//cookiejar読み込みテスト
 func TestLoadCookieFile(t *testing.T) {
 	cookies, err := c.LoadFile(testfilepath)
 	if err != nil {
@@ -68,7 +74,8 @@ func TestLoadCookieFile(t *testing.T) {
 
 var test_cookies, _ = c.LoadFile(testfilepath)
 
-func TestAddCookie(t *testing.T) {
+//cookie追加のテスト
+func TestAdd(t *testing.T) {
 	rs := RandString(10)
 	c := cookie{
 		"www.geocities.com",
@@ -89,7 +96,8 @@ func TestAddCookie(t *testing.T) {
 	}
 }
 
-func TestUpdataCookie(t *testing.T) {
+//cookie更新
+func TestUpdata(t *testing.T) {
 	rs := RandString(10)
 	e := test_cookies.Updata("www.geocities.com", "LocalId", rs)
 	if e != nil {
@@ -100,6 +108,8 @@ func TestUpdataCookie(t *testing.T) {
 		t.Error("クッキーの更新がなされていません\n")
 	}
 }
+
+//cookie削除のテスト
 func TestRemove(t *testing.T) {
 	e := test_cookies.Remove("www.geocities.com", "LocalId")
 	if e != nil {
@@ -108,5 +118,19 @@ func TestRemove(t *testing.T) {
 	a, _ := test_cookies.Read("www.geocities.com")
 	if len(a) != 1 {
 		t.Error("クッキーの削除がなされていません\n")
+	}
+}
+
+//cookiejar書き込みのテスト
+func TestWriteFile(t *testing.T) {
+	test_file := "./test_cookiejar_test.txt"
+	test_cookies.WriteFile(test_file)
+	c, _ = c.LoadFile(test_file)
+	test_slice, _ := c.Read("www.enemy.org")
+	if len(test_slice) != 1 {
+		t.Error("書き込まれた内容にロスが確認できます\n")
+	}
+	if err := os.Remove(test_file); err != nil {
+		fmt.Println(err)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 )
@@ -71,6 +72,29 @@ func (c *cookies) LoadFile(filepath string) (Cookies, error) {
 
 // 非効率な書き込み
 func (c *cookies) WriteFile(filepath string) error {
+	var jarslice []string
+	for _, cks := range c.data {
+		for _, ck := range cks {
+			jarslice = append(jarslice, strings.Join([]string{ck.Domain,
+				strconv.FormatBool(ck.Flag),
+				ck.Path,
+				strconv.FormatBool(ck.Secure),
+				strconv.FormatInt(ck.Expiration, 10),
+				ck.Name,
+				ck.Value,
+			}, "\t"))
+		}
+	}
+	if _, err := os.Stat(path.Dir(filepath)); os.IsNotExist(err) {
+		os.Mkdir(path.Dir(filepath), 0777)
+	}
+	file, err := os.Create(filepath)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	head := "# Netscape HTTP Cookie File\n# http://www.netscape.com/newsref/std/cookie_spec.html\n# This is a generated file!  Do not edit.\n\n"
+	file.Write(([]byte)(head + strings.Join(jarslice, "\n")))
 	return nil
 }
 
