@@ -15,20 +15,20 @@ import (
 type Cookies interface {
 	LoadFile(string) (Cookies, error)
 	WriteFile(string) error
-	Read(string) ([]http.Cookie, error)
+	Read(string) ([]*http.Cookie, error)
 	Add(http.Cookie) error
 	Remove(domein string, name string) error
 	Updata(domein string, name string, value string) error
 }
 
 type cookies struct {
-	data map[string][]http.Cookie
+	data map[string][]*http.Cookie
 }
 
 // 非効率読み込み いずれどうにかする
 func (c *cookies) LoadFile(filepath string) (Cookies, error) {
-	var d map[string][]http.Cookie
-	d = map[string][]http.Cookie{}
+	var d map[string][]*http.Cookie
+	d = map[string][]*http.Cookie{}
 
 	file, err := os.Open(filepath)
 	if err != nil {
@@ -44,7 +44,7 @@ func (c *cookies) LoadFile(filepath string) (Cookies, error) {
 		e, _ := strconv.ParseInt(ck[4], 10, 64)
 		h, _ := strconv.ParseBool(ck[1])
 		s, _ := strconv.ParseBool(ck[3])
-		d[ck[0]] = append(d[ck[0]], http.Cookie{
+		d[ck[0]] = append(d[ck[0]], &http.Cookie{
 			Name:       ck[5],
 			Value:      ck[6],
 			Path:       ck[2],
@@ -90,23 +90,35 @@ func (c *cookies) WriteFile(filepath string) error {
 }
 
 // ドメインに所属するcookie structを配列で
-func (c *cookies) Read(domein string) ([]http.Cookie, error) {
+func (c *cookies) Read(domein string) ([]*http.Cookie, error) {
 	return c.data[domein], nil
 }
 
 // cookie structを追加
 func (c *cookies) Add(cookie_s http.Cookie) error {
-	c.data[cookie_s.Domain] = append(c.data[cookie_s.Domain], cookie_s)
+	c.data[cookie_s.Domain] = append(c.data[cookie_s.Domain], &cookie_s)
 	return nil
 }
 
 //ドメイン配下のnameを削除
 func (c *cookies) Remove(domein string, name string) error {
+	newCookies := []*http.Cookie{}
+	for _, cookie := range c.data[domein] {
+		if cookie.Name != name {
+			newCookies = append(newCookies, cookie)
+		}
+	}
+	c.data[domein] = newCookies
 	return nil
 }
 
 //ドメイン配下のnameの値をvalueで更新
 func (c *cookies) Updata(domein string, name string, value string) error {
+	for _, cookie := range c.data[domein] {
+		if cookie.Name == name {
+			cookie.Value = value
+		}
+	}
 	return nil
 }
 

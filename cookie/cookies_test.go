@@ -68,7 +68,7 @@ func TestLoadCookieFile(t *testing.T) {
 		t.Error("取得した値が異なります\n")
 	}
 	c, _ := cookies.Read(".netscape.com")
-	if c[1].Secure != false {
+	if c[1].Secure == false {
 		t.Error("取得した値が異なります\n")
 	}
 }
