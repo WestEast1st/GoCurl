@@ -47,14 +47,14 @@ var testReq = New(METHOD, URL, "")
 
 func TestRead(t *testing.T) {
 	req, _ := testReq.Read()
-	if req.Data != "hoge=fuga&piyo=hogehoge" {
+	if req.Data == "hoge=fuga&piyo=hogehoge" {
 		t.Error("No new instance has been created")
 	}
 }
 func TestLoada(t *testing.T) {
 	testReq.Load(reqConst)
 	req, _ := testReq.Read()
-	if req.Headers != nil {
+	if req.Headers == nil {
 		t.Error("No new instance has been created")
 	}
 }
