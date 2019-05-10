@@ -72,18 +72,18 @@ func main() {
 		}()
 		// リクエストheader情報の格納
 		go func() {
+			m := map[string][]string{
+				"Accept-Encoding": {"chunked"},
+			}
 			if len(c.StringSlice("header")) > 0 {
 				wg.Add(1)
 				defer wg.Done()
-				m := map[string][]string{
-					"Accept-Encoding": {"chunked"},
-				}
 				for _, v := range c.StringSlice("header") {
 					h := strings.Split(v, ":")
-					m[h[0]] = []string{h[1]}
+					m[h[0]] = append(m[h[0]], h[1])
 				}
-				headerconf.HeaderInfo = m
 			}
+			headerconf.HeaderInfo = m
 		}()
 		//利用可能なスキーム
 		r := regexp.MustCompile(`^(http|https|ftp|ftps|dns|file)$`)
@@ -130,9 +130,15 @@ func main() {
 		// 実行
 		if len(urls.URL) > 0 {
 			client := client.New(urls)
-			res, _ := client.Request()
-			if res != "" {
-				fmt.Println(res)
+			client.Requests()
+			if urls.Output.Flag {
+				client.WriteFile()
+			} else if c.Bool("head") {
+				s, _ := client.Header()
+				fmt.Println(s)
+			} else {
+				s, _ := client.Body()
+				fmt.Println(s)
 			}
 		}
 	}
