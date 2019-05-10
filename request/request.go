@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -14,6 +15,7 @@ type Request interface {
 	UpdataMethod(string) error
 	UpdataData(string) error
 	UpdataURL(string) error
+	UpdataIsRedirect(bool) error
 	Do() (*http.Response, error)
 	Read() (request, error)
 	Load(request) error
@@ -68,6 +70,10 @@ func (r *request) UpdataURL(url string) error {
 	r.URL = url
 	return nil
 }
+func (r *request) UpdataIsRedirect(f bool) error {
+	r.IsRedirect = f
+	return nil
+}
 
 func (r *request) Do() (*http.Response, error) {
 	jar, _ := cookiejar.New(nil)
@@ -75,6 +81,7 @@ func (r *request) Do() (*http.Response, error) {
 	for k, v := range r.Headers {
 		req.Header.Add(k, v)
 	}
+	req.Header.Add("Content-Length", strconv.FormatInt(req.ContentLength, 10))
 	u, _ := url.Parse(r.URL)
 	jar.SetCookies(u, r.Cookie)
 	httpclient := http.Client{Jar: jar}
