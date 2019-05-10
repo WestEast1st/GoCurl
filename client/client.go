@@ -4,103 +4,81 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
-	"net/http/cookiejar"
 	"os"
 	"path"
 	"sort"
-	"strconv"
 	"strings"
 
 	"../infomation"
+	"../request"
 )
 
 //Client ...
 //clientはhttpリクエストを送信するためのモジュールです。
 type Client interface {
-	Request() (string, error)
+	Requests() error
+	Header() (string, error)
+	Body() (string, error)
+	WriteFile() error
 }
 
 type client struct {
-	Info infomation.HttpInfomation
+	Info     infomation.HttpInfomation
+	Response *http.Response
 }
 
-func (c *client) Request() (string, error) {
-	var httpclient http.Client
-	httpinfo := c.Info
-	//
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		log.Fatal(err)
+func (c *client) Header() (string, error) {
+	var h string
+	keys := []string{}
+	for k := range c.Response.Header {
+		keys = append(keys, k)
 	}
-	req, _ := http.NewRequest(httpinfo.Method, httpinfo.URL, strings.NewReader(httpinfo.Data.Encode()))
-	if httpinfo.Method == "POST" {
-		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	sort.Slice(keys, func(i, j int) bool {
+		return strings.Compare(keys[i], keys[j]) < 0
+	})
+	h += fmt.Sprintln(c.Response.Proto, c.Response.Status)
+	for _, k := range keys {
+		h += fmt.Sprintln(k, strings.Join(c.Response.Header[k], " "))
 	}
-	req.Header.Add("Content-Length", strconv.FormatInt(req.ContentLength, 10))
-	for k, v := range httpinfo.Header.HeaderInfo {
-		req.Header.Add(k, strings.Join(v, ","))
-	}
-	if httpinfo.Header.ReadFlag {
-		httpclient = http.Client{
-			Jar: jar,
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				return http.ErrUseLastResponse
-			},
-		}
-	} else {
-		httpclient = http.Client{Jar: jar}
-	}
-	resp, err := httpclient.Do(req)
-	if err != nil {
-		return "", err
-	}
-
-	defer resp.Body.Close()
-	// cookieの保存
-	/*
-		defer func() {
-			set_cookie_url, err := url.Parse(httpinfo.URL)
-			if err != nil {
-				log.Fatal(err)
-			}
-			cookiejars := jar.Cookies(set_cookie_url)
-		}()
-	*/
-	if httpinfo.Output.Flag {
-		if _, err := os.Stat(path.Dir(httpinfo.Output.Filename)); os.IsNotExist(err) {
-			os.Mkdir(path.Dir(httpinfo.Output.Filename), 0777)
-		}
-		file, err := os.Create(httpinfo.Output.Filename)
-		if err != nil {
-			panic(err)
-		}
-		defer file.Close()
-
-		io.Copy(file, resp.Body)
-		return "", nil
-	}
-
-	byteArray, _ := ioutil.ReadAll(resp.Body)
-	if httpinfo.Header.ReadFlag {
-		var h string
-		keys := []string{}
-		for k, _ := range resp.Header {
-			keys = append(keys, k)
-		}
-		sort.Slice(keys, func(i, j int) bool {
-			return strings.Compare(keys[i], keys[j]) < 0
-		})
-		h += fmt.Sprintln(resp.Proto, resp.Status)
-		for _, k := range keys {
-			h += fmt.Sprintln(k, strings.Join(resp.Header[k], " "))
-		}
-		return string(h), nil
-	}
-	return string(byteArray), nil
+	fmt.Println(c.Response.ContentLength)
+	return string(h), nil
 }
 
+func (c *client) Body() (string, error) {
+	b, _ := ioutil.ReadAll(c.Response.Body)
+	return string(b), nil
+}
+
+func (c *client) WriteFile() error {
+	if _, err := os.Stat(path.Dir(c.Info.Output.Filename)); os.IsNotExist(err) {
+		os.Mkdir(path.Dir(c.Info.Output.Filename), 0777)
+	}
+	file, err := os.Create(c.Info.Output.Filename)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	io.Copy(file, c.Response.Body)
+	return nil
+}
+
+func (c *client) Requests() error {
+	req := request.New(c.Info.Method, c.Info.URL, c.Info.Data.Encode())
+	header := []string{}
+	if c.Info.Method == "POST" {
+		header = append(header, "Content-Type: application/x-www-form-urlencoded")
+	}
+	for k, v := range c.Info.Header.HeaderInfo {
+		header = append(header, k+": "+strings.Join(v, ","))
+	}
+	req.UpdataIsRedirect(c.Info.Header.ReadFlag)
+	req.SetHeader(header)
+	c.Response, _ = req.Do()
+	return nil
+}
+
+//New is Client return
 func New(h infomation.HttpInfomation) Client {
 	return &client{
 		Info: h,
