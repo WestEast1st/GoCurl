@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// cookie関連の操作をするメソッド
+//Cookies cookie関連の操作をするメソッド
 type Cookies interface {
 	LoadFile(string) (Cookies, error)
 	WriteFile(string) error
@@ -95,8 +95,11 @@ func (c *cookies) Read(domein string) ([]*http.Cookie, error) {
 }
 
 // cookie structを追加
-func (c *cookies) Add(cookie_s http.Cookie) error {
-	c.data[cookie_s.Domain] = append(c.data[cookie_s.Domain], &cookie_s)
+func (c *cookies) Add(cookieS http.Cookie) error {
+	if c.data[cookieS.Domain] == nil {
+		c.data = map[string][]*http.Cookie{}
+	}
+	c.data[cookieS.Domain] = append(c.data[cookieS.Domain], &cookieS)
 	return nil
 }
 
@@ -122,6 +125,7 @@ func (c *cookies) Updata(domein string, name string, value string) error {
 	return nil
 }
 
+//New is
 func New() Cookies {
 	return &cookies{}
 }

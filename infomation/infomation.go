@@ -1,6 +1,10 @@
 package infomation
 
-import "net/url"
+import (
+	"net/url"
+
+	"../cookie"
+)
 
 // 送信するHTTP関連の情報
 type HttpInfomation struct {
@@ -15,6 +19,7 @@ type HttpInfomation struct {
 	Fragment string
 	Output   Output
 	Header   Header
+	Cookie   cookie.Cookies
 }
 
 // アウトプットの関連情報

@@ -73,7 +73,7 @@ func TestLoadCookieFile(t *testing.T) {
 	}
 }
 
-var test_cookies, _ = c.LoadFile(testfilepath)
+var testCookies, _ = c.LoadFile(testfilepath)
 
 //cookie追加のテスト
 func TestAdd(t *testing.T) {
@@ -88,11 +88,11 @@ func TestAdd(t *testing.T) {
 		Secure:     true,
 		HttpOnly:   true,
 	}
-	e := test_cookies.Add(c)
+	e := testCookies.Add(c)
 	if e != nil {
 		t.Errorf("error message :%v", e)
 	}
-	a, _ := test_cookies.Read("www.geocities.com")
+	a, _ := testCookies.Read("www.geocities.com")
 	if a[len(a)-1].Value != rs {
 		t.Error("クッキーの追加がなされていません\n")
 	}
@@ -101,11 +101,11 @@ func TestAdd(t *testing.T) {
 //cookie更新
 func TestUpdata(t *testing.T) {
 	rs := RandString(10)
-	e := test_cookies.Updata("www.geocities.com", "LocalId", rs)
+	e := testCookies.Updata("www.geocities.com", "LocalId", rs)
 	if e != nil {
 		t.Errorf("error message :%v", e)
 	}
-	a, _ := test_cookies.Read("www.geocities.com")
+	a, _ := testCookies.Read("www.geocities.com")
 	if a[len(a)-1].Value != rs {
 		t.Error("クッキーの更新がなされていません\n")
 	}
@@ -113,11 +113,11 @@ func TestUpdata(t *testing.T) {
 
 //cookie削除のテスト
 func TestRemove(t *testing.T) {
-	e := test_cookies.Remove("www.geocities.com", "LocalId")
+	e := testCookies.Remove("www.geocities.com", "LocalId")
 	if e != nil {
 		t.Errorf("error message :%v", e)
 	}
-	a, _ := test_cookies.Read("www.geocities.com")
+	a, _ := testCookies.Read("www.geocities.com")
 	if len(a) != 1 {
 		t.Error("クッキーの削除がなされていません\n")
 	}
@@ -125,14 +125,14 @@ func TestRemove(t *testing.T) {
 
 //cookiejar書き込みのテスト
 func TestWriteFile(t *testing.T) {
-	test_file := "./test_cookiejar_test.txt"
-	test_cookies.WriteFile(test_file)
-	c, _ = c.LoadFile(test_file)
-	test_slice, _ := c.Read("www.enemy.org")
-	if len(test_slice) != 1 {
+	testFile := "./test_cookiejar_test.txt"
+	testCookies.WriteFile(testFile)
+	c, _ = c.LoadFile(testFile)
+	testSlice, _ := c.Read("www.enemy.org")
+	if len(testSlice) != 1 {
 		t.Error("書き込まれた内容にロスが確認できます\n")
 	}
-	if err := os.Remove(test_file); err != nil {
+	if err := os.Remove(testFile); err != nil {
 		fmt.Println(err)
 	}
 }

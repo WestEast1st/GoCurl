@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"sort"
@@ -73,6 +74,9 @@ func (c *client) Requests() error {
 		header = append(header, k+": "+strings.Join(v, ","))
 	}
 	req.UpdataIsRedirect(c.Info.Header.ReadFlag)
+	u, _ := url.Parse(c.Info.URL)
+	cookies, _ := c.Info.Cookie.Read(u.Host)
+	req.SetCookie(cookies)
 	req.SetHeader(header)
 	c.Response, _ = req.Do()
 	return nil

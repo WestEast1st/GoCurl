@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"regexp"
@@ -9,7 +10,9 @@ import (
 	"sync"
 
 	"./client"
+	"./cookie"
 	"./infomation"
+
 	"github.com/urfave/cli"
 )
 
@@ -35,6 +38,10 @@ func main() {
 			Name:  "header, H",
 			Usage: "POST送信するデータを入力してください",
 		},
+		cli.StringSliceFlag{
+			Name:  "cookie, b",
+			Usage: "ヘッダーに乗せて送信するcookie",
+		},
 		cli.BoolFlag{
 			Name:  "head, I",
 			Usage: "HTTP/FTP/FILEなどのヘッダーファイル情報を表示します",
@@ -43,16 +50,17 @@ func main() {
 
 	app.Action = func(c *cli.Context) {
 		var (
-			urls       infomation.HttpInfomation
+			urls       = infomation.HttpInfomation{}
 			outputconf infomation.Output
 			headerconf infomation.Header
 			method     = "GET"
 			filename   string
 			values     = url.Values{}
+			domain     string
 		)
+		urls.Cookie = cookie.New()
 		wg := &sync.WaitGroup{}
 		wg.Add(4)
-
 		// output関連のオプション設定
 		go func() {
 			defer wg.Done()
@@ -71,15 +79,14 @@ func main() {
 			for _, arg := range c.Args() {
 				u, _ := url.Parse(arg)
 				if len(r.FindStringSubmatch(u.Scheme)) > 0 {
-					urls = infomation.HttpInfomation{
-						URL:      u.String(),
-						URI:      u.RequestURI(),
-						Port:     u.Port(),
-						Hostname: u.Hostname(),
-						Path:     u.Path,
-						Query:    u.Query(),
-						Fragment: u.Fragment,
-					}
+					urls.URL = u.String()
+					urls.URI = u.RequestURI()
+					urls.Port = u.Port()
+					urls.Hostname = u.Hostname()
+					urls.Path = u.Path
+					urls.Query = u.Query()
+					urls.Fragment = u.Fragment
+					domain = u.Host
 				}
 			}
 		}()
@@ -109,7 +116,19 @@ func main() {
 		}()
 		headerconf.ReadFlag = c.Bool("head")
 		wg.Wait()
-
+		if len(c.StringSlice("cookie")) > 0 {
+			for _, v := range c.StringSlice("cookie") {
+				slice := strings.Split(v, "; ")
+				for _, ck := range slice {
+					c := strings.Split(ck, "=")
+					urls.Cookie.Add(http.Cookie{
+						Domain: domain,
+						Name:   c[0],
+						Value:  c[1],
+					})
+				}
+			}
+		}
 		// 実行
 		if len(urls.URL) > 0 {
 			urls.Method = method
