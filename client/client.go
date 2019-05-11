@@ -1,6 +1,8 @@
 package client
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -47,11 +49,24 @@ func (c *client) Header() (string, error) {
 }
 
 func (c *client) Body() (string, error) {
-	b, _ := ioutil.ReadAll(c.Response.Body)
-	return string(b), nil
+	var str string
+	switch c.Response.Header.Get("Content-Encoding") {
+	case "gzip":
+		reader, _ := gzip.NewReader(c.Response.Body)
+		defer reader.Close()
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(reader)
+		str = buf.String()
+	default:
+		b, _ := ioutil.ReadAll(c.Response.Body)
+		str = string(b)
+	}
+	return str, nil
 }
 
 func (c *client) WriteFile() error {
+	var reader io.Reader
+
 	if _, err := os.Stat(path.Dir(c.Info.Output.Filename)); os.IsNotExist(err) {
 		os.Mkdir(path.Dir(c.Info.Output.Filename), 0777)
 	}
@@ -60,7 +75,14 @@ func (c *client) WriteFile() error {
 		panic(err)
 	}
 	defer file.Close()
-	io.Copy(file, c.Response.Body)
+	switch c.Response.Header.Get("Content-Encoding") {
+	case "gzip":
+		reader, _ := gzip.NewReader(c.Response.Body)
+		defer reader.Close()
+	default:
+		reader = c.Response.Body
+	}
+	io.Copy(file, reader)
 	return nil
 }
 

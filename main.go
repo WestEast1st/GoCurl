@@ -93,7 +93,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 			m := map[string][]string{
-				"Accept-Encoding": {"chunked", "gzip"},
+				"Accept-Encoding": {"chunked"},
 			}
 			if len(c.StringSlice("header")) > 0 {
 				for _, v := range c.StringSlice("header") {
