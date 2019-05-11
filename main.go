@@ -42,18 +42,21 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) {
-		var urls infomation.HttpInfomation
-		var outputconf infomation.Output
-		var headerconf infomation.Header
-		var method string
-		var filename string
-		method = "GET"
+		var (
+			urls       infomation.HttpInfomation
+			outputconf infomation.Output
+			headerconf infomation.Header
+			method     = "GET"
+			filename   string
+			values     = url.Values{}
+		)
 		wg := &sync.WaitGroup{}
+		wg.Add(4)
+
 		// output関連のオプション設定
 		go func() {
+			defer wg.Done()
 			if c.Bool("O") || c.String("output") != "" {
-				wg.Add(1)
-				defer wg.Done()
 				outputconf.Flag = true
 				if c.String("output") != "" {
 					path := strings.Split(c.String("output"), "/")
@@ -62,22 +65,30 @@ func main() {
 				}
 			}
 		}()
-		// レスポンスheader情報を取得
 		go func() {
-			if c.Bool("head") {
-				wg.Add(1)
-				defer wg.Done()
-				headerconf.ReadFlag = c.Bool("head")
+			defer wg.Done()
+			r := regexp.MustCompile(`^(http|https|ftp|ftps|dns|file)$`)
+			for _, arg := range c.Args() {
+				u, _ := url.Parse(arg)
+				if len(r.FindStringSubmatch(u.Scheme)) > 0 {
+					urls = infomation.HttpInfomation{
+						URL:      u.String(),
+						URI:      u.RequestURI(),
+						Port:     u.Port(),
+						Hostname: u.Hostname(),
+						Path:     u.Path,
+						Query:    u.Query(),
+						Fragment: u.Fragment,
+					}
+				}
 			}
 		}()
-		// リクエストheader情報の格納
 		go func() {
+			defer wg.Done()
 			m := map[string][]string{
-				"Accept-Encoding": {"chunked"},
+				"Accept-Encoding": {"chunked", "gzip"},
 			}
 			if len(c.StringSlice("header")) > 0 {
-				wg.Add(1)
-				defer wg.Done()
 				for _, v := range c.StringSlice("header") {
 					h := strings.Split(v, ":")
 					m[h[0]] = append(m[h[0]], h[1])
@@ -85,53 +96,39 @@ func main() {
 			}
 			headerconf.HeaderInfo = m
 		}()
-		//利用可能なスキーム
-		r := regexp.MustCompile(`^(http|https|ftp|ftps|dns|file)$`)
-		wg.Wait()
-		for _, arg := range c.Args() {
-			u, _ := url.Parse(arg)
-			if len(r.FindStringSubmatch(u.Scheme)) > 0 {
-				// -O remote-name用の箇所
-				if outputconf.Flag && outputconf.Filename == "" {
-					path := strings.Split(u.Path, "/")
-					outputconf.Filepath = "./"
-					if path[len(path)-1] == "" {
-						filename = "index.html"
-					} else {
-						filename = path[len(path)-1]
-					}
-					outputconf.Filename = filename
-				}
-				// -d --dataの送信データの構造変更
-				values := url.Values{}
-				if len(c.StringSlice("data")) > 0 {
-					method = "POST"
-					for _, data := range c.StringSlice("data") {
-						slice := strings.Split(data, "=")
-						values.Set(slice[0], slice[1])
-					}
-				}
-				// URL関連の構造体
-				urls = infomation.HttpInfomation{
-					URL:      u.String(),
-					URI:      u.RequestURI(),
-					Method:   method,
-					Port:     u.Port(),
-					Hostname: u.Hostname(),
-					Path:     u.Path,
-					Query:    u.Query(),
-					Data:     values,
-					Fragment: u.Fragment,
-					Output:   outputconf,
-					Header:   headerconf,
+		go func() {
+			// -d --dataの送信データの構造変更
+			defer wg.Done()
+			if len(c.StringSlice("data")) > 0 {
+				method = "POST"
+				for _, data := range c.StringSlice("data") {
+					slice := strings.Split(data, "=")
+					values.Set(slice[0], slice[1])
 				}
 			}
-		}
+		}()
+		headerconf.ReadFlag = c.Bool("head")
+		wg.Wait()
+
 		// 実行
 		if len(urls.URL) > 0 {
+			urls.Method = method
+			urls.Header = headerconf
+			urls.Data = values
+			if outputconf.Flag {
+				path := strings.Split(urls.Path, "/")
+				outputconf.Filepath = "./"
+				if path[len(path)-1] == "" {
+					filename = "index.html"
+				} else {
+					filename = path[len(path)-1]
+				}
+				outputconf.Filename = filename
+				urls.Output = outputconf
+			}
 			client := client.New(urls)
 			client.Requests()
-			if urls.Output.Flag {
+			if outputconf.Flag {
 				client.WriteFile()
 			} else if c.Bool("head") {
 				s, _ := client.Header()
