@@ -3,7 +3,6 @@ package request
 import (
 	"net/http"
 	"net/http/cookiejar"
-	"net/url"
 	"strconv"
 	"strings"
 )
@@ -27,6 +26,7 @@ type request struct {
 	Data       string
 	Headers    map[string]string
 	Cookie     []*http.Cookie
+	Jar        *cookiejar.Jar
 	IsRedirect bool
 }
 
@@ -76,15 +76,16 @@ func (r *request) UpdataIsRedirect(f bool) error {
 }
 
 func (r *request) Do() (*http.Response, error) {
-	jar, _ := cookiejar.New(nil)
+	//jar := &cookiejar.Jar{}
 	req, _ := http.NewRequest(r.Method, r.URL, strings.NewReader(r.Data))
 	for k, v := range r.Headers {
 		req.Header.Add(k, v)
 	}
 	req.Header.Add("Content-Length", strconv.FormatInt(req.ContentLength, 10))
-	u, _ := url.Parse(r.URL)
-	jar.SetCookies(u, r.Cookie)
-	httpclient := http.Client{Jar: jar}
+	for _, v := range r.Cookie {
+		req.AddCookie(v)
+	}
+	httpclient := http.Client{}
 	if r.IsRedirect {
 		httpclient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
