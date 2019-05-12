@@ -19,6 +19,7 @@ type Cookies interface {
 	Add(http.Cookie) error
 	Remove(domein string, name string) error
 	Updata(domein string, name string, value string) error
+	UpdataCookies(domein string, cookies []*http.Cookie) error
 }
 
 type cookies struct {
@@ -39,23 +40,26 @@ func (c *cookies) LoadFile(filepath string) (Cookies, error) {
 	b, err := ioutil.ReadAll(file)
 
 	for _, cks := range strings.Split(string(b), "\n")[4:] {
-
 		ck := strings.Split(cks, "\t")
-		e, _ := strconv.ParseInt(ck[4], 10, 64)
-		h, _ := strconv.ParseBool(ck[1])
-		s, _ := strconv.ParseBool(ck[3])
-		d[ck[0]] = append(d[ck[0]], &http.Cookie{
-			Name:       ck[5],
-			Value:      ck[6],
-			Path:       ck[2],
-			Domain:     ck[0],
-			Expires:    time.Unix(e, 0),
-			RawExpires: ck[4],
-			Secure:     h,
-			HttpOnly:   s,
-			Raw:        cks,
-		})
-
+		if len(ck) >= 7 {
+			e, _ := strconv.ParseInt(ck[4], 10, 64)
+			h, _ := strconv.ParseBool(ck[1])
+			s, _ := strconv.ParseBool(ck[3])
+			if ck[2] == "" {
+				ck[2] = "/"
+			}
+			d[ck[0]] = append(d[ck[0]], &http.Cookie{
+				Name:       ck[5],
+				Value:      ck[6],
+				Path:       ck[2],
+				Domain:     ck[0],
+				Expires:    time.Unix(e, 0),
+				RawExpires: ck[4],
+				Secure:     h,
+				HttpOnly:   s,
+				Raw:        cks,
+			})
+		}
 	}
 	return &cookies{data: d}, nil
 }
@@ -63,10 +67,16 @@ func (c *cookies) LoadFile(filepath string) (Cookies, error) {
 // 非効率な書き込み
 func (c *cookies) WriteFile(filepath string) error {
 	var jarslice []string
-	for _, cks := range c.data {
+	for k, cks := range c.data {
 		for _, ck := range cks {
+			if ck.Path == "" {
+				ck.Path = "/"
+			}
+			if ck.RawExpires == "" {
+				ck.RawExpires = strconv.FormatInt(time.Now().Unix(), 10)
+			}
 			jarslice = append(jarslice, strings.Join([]string{
-				ck.Domain,
+				k,
 				strconv.FormatBool(ck.HttpOnly),
 				ck.Path,
 				strconv.FormatBool(ck.Secure),
@@ -122,6 +132,14 @@ func (c *cookies) Updata(domein string, name string, value string) error {
 			cookie.Value = value
 		}
 	}
+	return nil
+}
+func (c *cookies) UpdataCookies(domein string, cookies []*http.Cookie) error {
+	if c.data[domein] == nil {
+		c.data = map[string][]*http.Cookie{}
+	}
+	c.data[domein] = nil
+	c.data[domein] = cookies
 	return nil
 }
 

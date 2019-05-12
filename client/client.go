@@ -24,6 +24,7 @@ type Client interface {
 	Header() (string, error)
 	Body() (string, error)
 	WriteFile() error
+	WriteCookieJar(path string) error
 }
 
 type client struct {
@@ -44,7 +45,6 @@ func (c *client) Header() (string, error) {
 	for _, k := range keys {
 		h += fmt.Sprintln(k, strings.Join(c.Response.Header[k], " "))
 	}
-	fmt.Println(c.Response.ContentLength)
 	return string(h), nil
 }
 
@@ -101,6 +101,12 @@ func (c *client) Requests() error {
 	req.SetCookie(cookies)
 	req.SetHeader(header)
 	c.Response, _ = req.Do()
+	cookies, _ = req.GetCookie(u)
+	c.Info.Cookie.UpdataCookies(u.Host, cookies)
+	return nil
+}
+func (c *client) WriteCookieJar(path string) error {
+	c.Info.Cookie.WriteFile(path)
 	return nil
 }
 

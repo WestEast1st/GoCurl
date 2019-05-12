@@ -42,6 +42,10 @@ func main() {
 			Name:  "cookie, b",
 			Usage: "ヘッダーに乗せて送信するcookie",
 		},
+		cli.StringFlag{
+			Name:  "cookie-jar,c",
+			Usage: "cookie-jar",
+		},
 		cli.BoolFlag{
 			Name:  "head, I",
 			Usage: "HTTP/FTP/FILEなどのヘッダーファイル情報を表示します",
@@ -60,8 +64,17 @@ func main() {
 		)
 		urls.Cookie = cookie.New()
 		wg := &sync.WaitGroup{}
-		wg.Add(4)
+		wg.Add(5)
 		// output関連のオプション設定
+		go func() {
+			defer wg.Done()
+			if c.String("cookie-jar") != "" {
+				_, err := os.Stat(c.String("cookie-jar"))
+				if err == nil {
+					urls.Cookie, _ = urls.Cookie.LoadFile(c.String("cookie-jar"))
+				}
+			}
+		}()
 		go func() {
 			defer wg.Done()
 			if c.Bool("O") || c.String("output") != "" {
@@ -147,6 +160,9 @@ func main() {
 			}
 			client := client.New(urls)
 			client.Requests()
+			if c.String("cookie-jar") != "" {
+				client.WriteCookieJar(c.String("cookie-jar"))
+			}
 			if outputconf.Flag {
 				client.WriteFile()
 			} else if c.Bool("head") {
